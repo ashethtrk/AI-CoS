@@ -10,7 +10,7 @@
 
 ## 0. TL;DR of the design
 
-You're building one "brain" (a Notion workspace) fed by a small fleet of **harvester → triage → surface → draft** modules that run from Claude Code on a schedule. Everything an agent finds becomes a row in one **Action Items** database with a stable source ID so nothing is duplicated and nothing is lost. Notion is the live operational hub; Obsidian is the durable, private, git-versioned archive. The single highest-value artifact is not the code — it's your **instruction/context files** (people, priorities, definition of "important"). You tune those weekly.
+You're building one "brain" (a Notion workspace) fed by a small fleet of **harvester → triage → surface → draft** modules that run from Claude Code on a schedule. Everything an agent finds becomes a row in one **Items** database with a stable source ID so nothing is duplicated and nothing is lost. Notion is the live operational hub; Obsidian is the durable, private, git-versioned archive. The single highest-value artifact is not the code — it's your **instruction/context** (the priorities file, the People DB watch levels, your definition of "important"). You tune those weekly.
 
 **Do this first, this week (time-sensitive):** Rescue your Granola history. On the free plan only the last ~30 days are visible in-app; older notes are retained but locked. Pull them out now (three redundant methods below).
 
@@ -21,7 +21,7 @@ You're building one "brain" (a Notion workspace) fed by a small fleet of **harve
 ```
         SOURCES (read)                 CORE BRAIN (Notion)              SURFACES (you)
   ┌───────────────────────┐      ┌──────────────────────────┐    ┌────────────────────┐
-  │ Granola  (MCP)         │      │  Action Items DB  ◄──────┼────┤  Daily Brief (8am) │
+  │ Granola  (MCP)         │      │  Items DB         ◄──────┼────┤  Brief (9am + 1pm) │
   │ Email    (MCP)         │─────►│  Meetings/Notes DB       │    │  Reminders/Nudges  │
   │ Slack    (MCP)         │ HARV │  Daily Briefs DB         │───►│  Draft replies     │
   │ Jira     (MCP)         │ EST  │  People DB               │    │  Weekly context    │
@@ -33,7 +33,7 @@ You're building one "brain" (a Notion workspace) fed by a small fleet of **harve
                                    Obsidian vault (git) — cold archive + graph + thinking
 ```
 
-**Data flow:** Harvesters read each source, extract candidate action items, dedupe against existing Source IDs, and drop new items into the Action Items DB "Inbox." Triage prioritizes them. Surfaces (brief, reminders, drafts) read the DB and present to you. You approve; the agent never acts on your accounts without a click.
+**Data flow:** Harvesters read each source, extract candidate action items, dedupe against existing Source IDs, and drop new items into the Items DB "Inbox." Triage prioritizes them. Surfaces (brief, reminders, drafts) read the DB and present to you. You approve; the agent never acts on your accounts without a click.
 
 ---
 
@@ -67,13 +67,17 @@ Six objects. Build these first — everything else depends on them.
 | First Seen In Brief | Date | Lets the agent flag "appeared 3 days running" |
 
 ### 2.2 Meetings/Notes DB — Granola + meeting archive
-`Title · Date · Attendees (relation→People) · Source (Granola/Manual) · Summary · Transcript (link or child page) · Extracted Actions (relation→Action Items) · Folder/Tag`
+`Title · Date · Attendees (relation→People) · Source (Granola/Manual) · Summary · Transcript (link or child page) · Extracted Actions (relation→Items) · Folder/Tag`
 
 ### 2.3 Daily Briefs DB
 `Brief (title) · Date · Status (Draft/Sent/Skipped) · Topline (1 line) · Risks/Blockers · Key Links · Body`
 
+One row per brief, full or delta. `Sent` just means delivered to Notion — briefs are informational; nothing is emailed unless you ask.
+
 ### 2.4 People DB — powers prioritization
 `Name · Role · Relationship (Direct report / XFN partner / Leadership / External) · Slack handle · Email · Notes · Watch level (High/Med/Low)`
+
+**Canonical source of truth for people.** There is no local `people.md` mirror — the agent queries this DB at the start of each run.
 
 ### 2.5 Projects/Areas DB
 `Name · Status · Priority · Owner · Related Items (relation) · Related Docs`
@@ -93,18 +97,18 @@ Running memory the agent rewrites weekly: current top priorities, active initiat
 The Notion-blog example is one agent with triggers. In Claude Code it's cleaner to make each job a **slash command / instruction file** invoked by a schedule. Think of them as one team with specialized roles.
 
 ### 3.1 Harvester (ingestion) — runs 2–4×/day
-Sweeps every source, extracts candidate actions, dedupes, writes to Inbox.
+Sweeps every source, extracts candidate actions, dedupes, writes to Inbox. Keeps a per-source high-water mark in `state/last-run.json` so each run only scans activity since the last one, and appends to `state/run-log.md` so partial or failed runs are detectable.
 - **Granola sub-harvester:** `list_meetings` → for new notes, `get_meeting_transcript`; extract action items + decisions; write meeting to Meetings DB and actions to Inbox.
 - **Email sub-harvester:** `search_threads` for unread/unanswered where you're a direct recipient or @mentioned; extract "needs reply / needs decision / FYI"; skip newsletters + notifications.
 - **Slack sub-harvester:** `search` your channels/threads for questions directed at you or unresolved threads you're in; extract asks. (No DMs/private unless you explicitly allow.)
-- **Jira sub-harvester:** `searchJiraIssuesUsingJql` for issues assigned to you / you reported / recently updated; sync status into Action Items (read-only to start).
+- **Jira sub-harvester:** `searchJiraIssuesUsingJql` for issues assigned to you / you reported / recently updated; sync status into Items (read-only to start).
 
-**Dedup rule (critical):** before creating any item, query Action Items by `Source ID`. If it exists, update; else create. This is what makes re-runs safe.
+**Dedup rule (critical):** before creating any item, query Items by `Source ID`. If it exists, update; else create. This is what makes re-runs safe. Note Source ID only catches same-source re-imports — cross-source duplicates (the same ask arriving via email + Slack + a meeting) are Triage's job (§3.2).
 
 ### 3.2 Triage / Prioritizer — runs after each harvest
-**Classifies each item's `Type`** (Action / Commitment / Risk-Issue / Decision / Customer Update) — a promise to a customer becomes a Commitment, "we need to decide…" becomes a Decision, a flagged blocker becomes a Risk/Issue. Then links `Account` + `Project` + `People`, moves Inbox → Next/Waiting, sets Priority (§4), writes a one-line Next Action, and flips `At Risk` when a commitment's due date is near without progress. Flags anything stale (Waiting > N days) or recurring.
+**Classifies each item's `Type`** (Action / Commitment / Risk-Issue / Decision / Customer Update) — a promise to a customer becomes a Commitment, "we need to decide…" becomes a Decision, a flagged blocker becomes a Risk/Issue. Then links `Account` + `Project` + `People`, moves Inbox → Next/Waiting, sets Priority (§4), writes a one-line Next Action, and flips `At Risk` when a commitment's due date is near without progress. Flags anything stale (Waiting > N days) or recurring. Also merges **cross-source duplicates**: when the same real-world ask arrived through multiple sources, keep one Item and fold the other Source Links into it instead of tracking it twice.
 
-### 3.3 Daily Brief — weekdays 8:00 (your TZ)
+### 3.3 Daily Brief — weekdays, 2×/day (9:00 AM full + 1:00 PM delta, PT)
 **Per Aditi's feedback, the brief surfaces more than my tasks.** It's organized into fixed sections, each drawn from a filtered view of the Items/Accounts DBs:
 
 1. **Today's meetings** — attendees, related docs/notes, 2–3 prep bullets each.
@@ -117,6 +121,8 @@ Sweeps every source, extracts candidate actions, dedupes, writes to Inbox.
 8. **✍️ Replies to draft today** + a rotating **deep-dive** (a Drive/Confluence doc or a metric).
 
 Writes a row to Daily Briefs DB. **Informational only.**
+
+The **1:00 PM run is a sanity-check delta**, not a second full brief: it harvests + triages what arrived since morning, then posts a short digest of what was done with it — new items and how they were classified, anything newly at-risk, replies that landed — so misclassifications get caught the same day. Also writes to the Daily Briefs DB.
 
 ### 3.4 Draft Assistant — on demand + flagged in brief
 For items tagged "needs reply," drafts the email (`create_draft`) or Slack message (`slack_send_message_draft`) in **your** voice — saved as a draft, never sent. Brief links straight to the draft so you review → tweak → send.
@@ -168,7 +174,7 @@ Graduation path (later): pick one narrow, safe flow (e.g., auto-labeling email, 
 ### 6.1 Phase 0 — Granola rescue (DO THIS WEEK) ⏰
 Three redundant methods; do at least the first two.
 
-1. **Via your connected Granola MCP (fastest, structured):** have Claude Code walk `list_meetings` / `list_meeting_folders`, then `get_meeting_transcript` for each, and write every meeting into the Notion Meetings DB **and** as a markdown file in the Obsidian vault. This also extracts historical action items into the Action Items DB.
+1. **Via your connected Granola MCP (fastest, structured):** have Claude Code walk `list_meetings` / `list_meeting_folders`, then `get_meeting_transcript` for each, and write every meeting into the Notion Meetings DB **and** as a markdown file in the Obsidian vault. This also extracts historical action items into the Items DB.
 2. **Official CSV export (belt-and-suspenders):** Granola → Settings → Profile → **Generate CSV**. Includes title, summary, and transcript; emailed to you within a few hours. Keep the file as raw backup.
 3. **Local-cache export tool (captures anything the API/CSV misses):** community tools read Granola's on-disk cache and write full markdown — notably **Granary** (preserves transcripts even after Granola purges them) and **granola-export**/**granola-cli**. Run once into the Obsidian vault.
 
@@ -192,9 +198,9 @@ chief-of-staff/
 ├── CLAUDE.md                      # THE product: role, rules, autonomy contract, formatting
 ├── .mcp.json                      # granola, email, slack, jira, calendar, drive, notion
 ├── context/
-│   ├── people.md                  # watch list + relationships (mirror of People DB)
 │   ├── priorities.md              # current focus areas + "what important means"
 │   └── reference-brief.md         # a gold-standard brief so it matches your vibe
+├── state/                         # last-run.json, run-log.md (gitignored, machine-local)
 ├── .claude/commands/
 │   ├── harvest.md                 # run all harvesters + dedupe
 │   ├── triage.md                  # prioritize the Inbox
@@ -208,14 +214,18 @@ chief-of-staff/
     └── onenote-import.md
 ```
 
-**Scheduling:** run headless from cron (macOS `launchd` or `cron`), e.g.
-```
-0 6 * * 1-5   cd ~/chief-of-staff && claude -p "/harvest && /triage && /brief"
-0 12 * * 1-5  cd ~/chief-of-staff && claude -p "/harvest && /triage"
-30 16 * * 5   cd ~/chief-of-staff && claude -p "/weekly-wrap"
-0 9 * * 1     cd ~/chief-of-staff && claude -p "/weekly-context"
-```
-(You can also run any command interactively whenever you like.)
+**Scheduling:** use **launchd**, not cron — this runs on a laptop, and launchd fires a missed job as soon as the machine wakes, while cron silently skips anything scheduled during sleep. One LaunchAgent plist per job:
+
+| Job | When (PT) | Runs |
+|---|---|---|
+| Morning | weekdays 9:00 AM | harvest → triage → full brief |
+| Midday | weekdays 1:00 PM | harvest → triage → sanity-check delta |
+| Weekly context | Mon 9:00 AM | rewrite Living Context |
+| Weekly wrap | Fri 4:30 PM | end-of-week digest |
+
+Each job invokes Claude Code headless, e.g. `claude -p "run /harvest, then /triage, then /brief"` (slash commands can't be shell-chained with `&&` inside a single `-p` string).
+
+**Gate before scheduling goes live:** the MCP connections (Granola, Gmail, Slack, Notion, Calendar, Drive, Jira) are authenticated interactively through claude.ai and may not be reachable in a headless run — verify once before trusting any schedule. Until validated, run every module interactively (which Weeks 0–2 call for anyway).
 
 ---
 
@@ -225,13 +235,13 @@ chief-of-staff/
 > Create the following databases in my Notion workspace under a new "Chief of Staff" page: Items, Meetings/Notes, Daily Briefs, People, Projects/Areas, Accounts — with exactly the properties in section 2 of my plan (I'll paste it), including the Items `Type` property (Action/Commitment/Risk-Issue/Decision/Customer Update), `Account` and `Dependency` relations, and the `At Risk` checkbox. Add relations: Items↔People (Waiting On), Items↔Items (Dependency), Items↔Projects, Items↔Accounts, Meetings↔People (Attendees), Meetings↔Items, Accounts↔People. Then create saved views on Items: "Commitments," "Risks/Issues," "Decisions needed," "At risk," and "By account." Create a single "Living Context" page. Confirm each database's ID back to me.
 
 ### 8.2 Granola rescue
-> Using the Granola MCP, list every meeting and folder I have. For each meeting, fetch its transcript and summary. Write each as (a) a row in my Notion Meetings/Notes DB and (b) a markdown file at ~/obsidian/CoS/granola/YYYY-MM-DD-title.md. Extract action items assigned to or committed by me and create them in the Action Items DB with Source=Granola, a Source ID = the meeting/note id, and Source Link. Skip any meeting whose Source ID already exists. Give me a count of meetings and actions imported, and flag the oldest date you could reach.
+> Using the Granola MCP, list every meeting and folder I have. For each meeting, fetch its transcript and summary. Write each as (a) a row in my Notion Meetings/Notes DB and (b) a markdown file at ~/Documents/Obsidian/CoS/granola/YYYY-MM-DD-title.md. Extract action items assigned to or committed by me and create them in the Items DB with Source=Granola, a Source ID = the meeting/note id, and Source Link. Skip any meeting whose Source ID already exists. Give me a count of meetings and actions imported, and flag the oldest date you could reach.
 
 ### 8.3 OneNote import
-> I've exported my OneNote notebooks to markdown at ~/exports/onenote/. Parse every file, extract action items (respect any checkbox/status/date cues), infer a Project/Area, and bulk-create rows in the Action Items DB. Mark clearly-completed ones as Done, ambiguous ones as Inbox for my triage. Use Source=Manual and a Source ID derived from the file path + heading so re-runs don't duplicate. Summarize what you created grouped by Project.
+> I've exported my OneNote notebooks to markdown at ~/exports/onenote/. Parse every file, extract action items (respect any checkbox/status/date cues), infer a Project/Area, and bulk-create rows in the Items DB. Mark clearly-completed ones as Done, ambiguous ones as Inbox for my triage. Use Source=Manual and a Source ID derived from the file path + heading so re-runs don't duplicate. Summarize what you created grouped by Project.
 
 ### 8.4 CLAUDE.md seed (paste as the file's core)
-> You are my Chief of Staff. Purpose: help me start each day calm, prepared, and on top of what matters across Granola, email, Slack, Jira, calendar, and Drive — with Notion as the system of record. Read context/people.md and context/priorities.md before every run. **Rules: draft-only.** You may read anything I can access and write only to my Notion workspace and Obsidian vault. You may create unsent drafts in email/Slack. You must NEVER send messages, transition/close Jira, delete anything, or read DMs/private channels without my explicit per-action approval. Always dedupe against Source ID before creating Action Items. Keep briefs conversational and scannable, with links everywhere. This is informational and preparatory only — I am always the sender and the decider.
+> You are my Chief of Staff. Purpose: help me start each day calm, prepared, and on top of what matters across Granola, email, Slack, Jira, calendar, and Drive — with Notion as the system of record. Read context/priorities.md and query the Notion People DB before every run. **Rules: draft-only.** You may read anything I can access and write only to my Notion workspace and Obsidian vault. You may create unsent drafts in email/Slack. You must NEVER send messages, transition/close Jira, delete anything, or read DMs/private channels without my explicit per-action approval. Always dedupe against Source ID before creating Items. Keep briefs conversational and scannable, with links everywhere. This is informational and preparatory only — I am always the sender and the decider.
 
 ---
 
@@ -241,6 +251,8 @@ Position the two tools by job, not as rivals:
 
 - **Notion = live operational hub.** Structured databases, relations, collaborative, best MCP write support, where the agent works and where briefs land.
 - **Obsidian = durable private archive + thinking layer.** Plain markdown on your disk, git-versioned (nothing ever lost, full history), fast offline, backlinks/graph for connecting ideas across two years.
+
+**Vault location:** `~/Documents/Obsidian/CoS`, set up on **day 1** with Obsidian Git enabled. The Granola rescue populates it immediately, so there's real content to learn the app on from the start.
 
 **Sync model (one-way, low-friction):**
 - Granola transcripts and OneNote raw exports land **directly** in the vault (immutable cold storage).
@@ -252,22 +264,22 @@ Position the two tools by job, not as rivals:
 
 ## 10. Phased rollout (≈4 weeks)
 
-- **Week 0:** Granola rescue (§6.1) + bootstrap Notion schema (§8.1) + fill People/priorities context files.
+- **Week 0:** set up the Obsidian vault (day 1) + Granola rescue (§6.1) + bootstrap Notion schema (§8.1) + fill the People DB and `context/priorities.md`.
 - **Week 1:** Harvester + Triage live; review the Inbox manually each day; tune dedupe + "important" rules.
 - **Week 2:** Daily Brief + Reminders on a schedule; refine format against your reference brief.
 - **Week 3:** Draft Assistant + Weekly Context + Weekly Wrap.
-- **Week 4:** OneNote 2-year migration + Obsidian archive/sync; retire OneNote.
-- **Ongoing:** the real work — update `people.md`/`priorities.md`/Living Context weekly; prune noisy sources; consider graduating one narrow flow past draft-only.
+- **Week 4:** OneNote 2-year migration + weekly Notion→vault export; retire OneNote.
+- **Ongoing:** the real work — update the People DB, `priorities.md`, and Living Context weekly; prune noisy sources; consider graduating one narrow flow past draft-only.
 
 ---
 
 ## 11. Open decisions to make before you start coding
 
-1. **Timezone + brief time** for the schedule (default 8am your local).
+1. ~~Timezone + brief time~~ — **decided 2026-07-14:** weekdays 9:00 AM full brief + 1:00 PM sanity-check delta, Pacific (laptop-open hours; launchd handles wake-from-sleep).
 2. **Slack scope:** which channels the harvester watches (list them in `people.md`/`priorities.md`), and confirming DMs stay off-limits.
 3. **Email importance filter:** direct-recipient-only vs. also cc'd; which labels/senders count as "important."
 4. **Jira JQL** for "my" issues (assignee, reporter, watched, project keys).
-5. **Obsidian vault location** and whether to enable Obsidian Git now or later.
+5. ~~Obsidian vault location~~ — **decided 2026-07-14:** `~/Documents/Obsidian/CoS`, Obsidian Git enabled from day 1.
 6. **OneNote export method** (manual per-section vs. Graph API / community exporter) — depends on how many notebooks/sections you have.
 ```
 

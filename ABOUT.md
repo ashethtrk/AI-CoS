@@ -15,11 +15,11 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 
 **In scope**
 - Notion is the single system of record (full switch from OneNote).
-- Runs from **Claude Code** in the terminal, on a schedule.
+- Runs from **Claude Code** in the terminal, on a schedule (launchd, laptop-open hours).
 - **Draft-only** autonomy: it gathers, prioritizes, drafts, and reminds — it never sends or closes anything without my click.
 - Tracks not just tasks but **commitments, risks/issues, decisions, and customer updates** (account-management lens).
 - Migrates 2+ years of history: Granola notes (urgent — free-tier 30-day window) and OneNote action items.
-- Obsidian as a local, git-versioned durable archive.
+- Obsidian as a local, git-versioned durable archive — **from day 1** (the Granola rescue populates the vault).
 
 **Out of scope (for now)**
 - Auto-sending email/Slack or auto-closing Jira (revisit after trust is established).
@@ -32,13 +32,15 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 |---|---|
 | Plan / architecture | ✅ Done — see `docs/chief-of-staff-plan.md` |
 | Repo + instructions | ✅ This repo |
+| Design review + doc updates | ✅ 2026-07-14 |
+| Obsidian vault setup (day 1) | ⏳ **Do first** (with Granola rescue) |
 | Granola rescue (30-day risk) | ⏳ **Do first** |
 | Notion schema bootstrap | ⬜ Not started |
 | Harvester + Triage | ⬜ Not started |
 | Daily Brief + Reminders | ⬜ Not started |
 | Draft Assistant | ⬜ Not started |
 | OneNote 2-yr migration | ⬜ Not started |
-| Obsidian archive/sync | ⬜ Not started |
+| Weekly Notion→vault export | ⬜ Not started |
 
 ## 4. How I'll use this repo
 
@@ -51,6 +53,7 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 
 _Newest first. One line per meaningful change._
 
+- **2026-07-14** — Design review with Claude. Cadence set: 9AM PT full brief + 1PM PT sanity-check delta, weekdays. launchd over cron (laptop sleeps). Dropped `people.md` — Notion People DB is canonical. Added cross-source dedup at triage, `state/` harvest bookkeeping, and a headless-MCP validation gate before scheduling. Standardized "Items DB" naming. Obsidian confirmed in scope from day 1 (vault `~/Documents/Obsidian/CoS`). Scaffolded `context/priorities.md`.
 - **2026-07-14** — Repo created. Plan finalized. Added item `Type` (Action/Commitment/Risk/Decision/Customer Update) + Accounts DB + richer daily-brief sections per Aditi's feedback.
 - **2026-07-14** — Initial architecture drafted (Notion backbone, Claude Code runtime, draft-only).
 
@@ -58,12 +61,14 @@ _Newest first. One line per meaningful change._
 
 _Unordered parking lot. Promote items into the plan when ready._
 
-- [ ] Confirm timezone + daily brief time before scheduling.
+- [x] Confirm timezone + daily brief time — **9AM + 1PM PT, weekdays** (2026-07-14).
+- [x] Decide Obsidian vault location; enable Obsidian Git — **`~/Documents/Obsidian/CoS`, Git from day 1** (2026-07-14).
 - [ ] List the exact Slack channels the harvester should watch.
 - [ ] Define the email importance filter (direct-recipient-only vs. cc'd).
 - [ ] Write the Jira JQL for "my" issues.
-- [ ] Decide Obsidian vault location; enable Obsidian Git.
 - [ ] Pick OneNote export method (manual vs. Graph API / community exporter).
+- [ ] Validate headless MCP access before turning on launchd schedules.
+- [ ] Fill in `context/priorities.md`; write `context/reference-brief.md` (a gold-standard brief to match my vibe).
 - [ ] "Metrics pulse" — one data nugget per brief (nice-to-have).
 - [ ] Flag patterns across briefs ("this risk appeared 3 days running").
 - [ ] Graduate one narrow flow past draft-only once trusted.
@@ -76,6 +81,10 @@ _Why things are the way they are._
 - **Claude Code as runtime** — max control, full MCP + file access, git-friendly, schedulable from terminal.
 - **Draft-only** — safest starting posture; I stay the sender and decider.
 - **One Items DB with a `Type` field** (not separate DBs) — one dedupable store, many filtered views; avoids database sprawl.
+- **2×/day cadence: full brief 9AM + sanity-check delta 1PM (PT)** (2026-07-14) — midday run is a triage-QA checkpoint on what came in since morning, not a second brief or a continuous stream.
+- **launchd over cron** (2026-07-14) — this runs on a laptop that sleeps; launchd fires missed jobs on wake, cron silently skips them.
+- **No `people.md`** (2026-07-14) — Notion People DB is the single source for people/watch levels; avoids two sources of truth. `priorities.md` is the only local context file.
+- **Obsidian from day 1** (2026-07-14) — the Granola rescue populates the vault immediately, so learning the app starts with real content instead of an empty folder.
 
 ## 8. Key links
 

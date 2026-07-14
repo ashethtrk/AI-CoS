@@ -16,5 +16,8 @@ exports/
 vault/
 obsidian/
 
+# Machine-local run state (per-source high-water marks, run logs)
+state/
+
 # Logs
 *.log
