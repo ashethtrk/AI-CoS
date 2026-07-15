@@ -53,6 +53,7 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 
 _Newest first. One line per meaningful change._
 
+- **2026-07-14** — MCP smoke test: 7/7 pipes green (Granola, Notion, Gmail, Slack, Calendar, Drive, Jira) via interactive read-only calls. Headless validation still pending before schedules go live.
 - **2026-07-14** — Brief delivery decided: Slack DM to Alvint (single carve-out to the no-send rule — to-me-only, briefs-only). Rollout compressed: build everything ASAP, tune over the following weeks (plan §10 rewritten). Owner name corrected to Alvint.
 - **2026-07-14** — Design review with Claude. Cadence set: 9AM PT full brief + 1PM PT sanity-check delta, weekdays. launchd over cron (laptop sleeps). Dropped `people.md` — Notion People DB is canonical. Added cross-source dedup at triage, `state/` harvest bookkeeping, and a headless-MCP validation gate before scheduling. Standardized "Items DB" naming. Obsidian confirmed in scope from day 1 (vault `~/Documents/Obsidian/CoS`). Scaffolded `context/priorities.md`.
 - **2026-07-14** — Repo created. Plan finalized. Added item `Type` (Action/Commitment/Risk/Decision/Customer Update) + Accounts DB + richer daily-brief sections per Aditi's feedback.
