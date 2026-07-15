@@ -53,6 +53,7 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 
 _Newest first. One line per meaningful change._
 
+- **2026-07-14** — Brief delivery decided: Slack DM to Alvint (single carve-out to the no-send rule — to-me-only, briefs-only). Rollout compressed: build everything ASAP, tune over the following weeks (plan §10 rewritten). Owner name corrected to Alvint.
 - **2026-07-14** — Design review with Claude. Cadence set: 9AM PT full brief + 1PM PT sanity-check delta, weekdays. launchd over cron (laptop sleeps). Dropped `people.md` — Notion People DB is canonical. Added cross-source dedup at triage, `state/` harvest bookkeeping, and a headless-MCP validation gate before scheduling. Standardized "Items DB" naming. Obsidian confirmed in scope from day 1 (vault `~/Documents/Obsidian/CoS`). Scaffolded `context/priorities.md`.
 - **2026-07-14** — Repo created. Plan finalized. Added item `Type` (Action/Commitment/Risk/Decision/Customer Update) + Accounts DB + richer daily-brief sections per Aditi's feedback.
 - **2026-07-14** — Initial architecture drafted (Notion backbone, Claude Code runtime, draft-only).
@@ -85,6 +86,8 @@ _Why things are the way they are._
 - **launchd over cron** (2026-07-14) — this runs on a laptop that sleeps; launchd fires missed jobs on wake, cron silently skips them.
 - **No `people.md`** (2026-07-14) — Notion People DB is the single source for people/watch levels; avoids two sources of truth. `priorities.md` is the only local context file.
 - **Obsidian from day 1** (2026-07-14) — the Granola rescue populates the vault immediately, so learning the app starts with real content instead of an empty folder.
+- **Slack DM delivery for briefs** (2026-07-14) — briefs are pushed, not pulled. Safe exception to draft-only because recipient (me) and content (briefs) are both fixed; everything else stays unsent.
+- **Build ASAP, tune over weeks** (2026-07-14) — the 4-week phased rollout compressed into one build sprint; calendar time is for tuning triage/brief quality against real use, not for building.
 
 ## 8. Key links
 

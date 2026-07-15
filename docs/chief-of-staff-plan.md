@@ -1,6 +1,6 @@
 # Chief of Staff Agent — Build Plan
 
-**Owner:** Alvin
+**Owner:** Alvint
 **Backbone:** Notion (full switch from OneNote)
 **Runtime:** Claude Code (terminal, headless + scheduled)
 **Autonomy:** Draft-only (gathers, prioritizes, drafts, reminds — never sends or closes without your click)
@@ -120,7 +120,7 @@ Sweeps every source, extracts candidate actions, dedupes, writes to Inbox. Keeps
 7. **✅ Top priorities (my actions)** — top 3–5 generic action items.
 8. **✍️ Replies to draft today** + a rotating **deep-dive** (a Drive/Confluence doc or a metric).
 
-Writes a row to Daily Briefs DB. **Informational only.**
+Writes a row to Daily Briefs DB and is **delivered as a Slack DM to me** — a short version linking to the full Notion page (the single carve-out to the no-send rule, §5). **Informational only.**
 
 The **1:00 PM run is a sanity-check delta**, not a second full brief: it harvests + triages what arrived since morning, then posts a short digest of what was done with it — new items and how they were classified, anything newly at-risk, replies that landed — so misclassifications get caught the same day. Also writes to the Daily Briefs DB.
 
@@ -162,6 +162,7 @@ Bake this verbatim into `CLAUDE.md` so it's non-negotiable:
 - **May write** freely to **your own Notion workspace** and your **Obsidian vault**.
 - **May create drafts** in email and Slack — always as unsent drafts.
 - **Must NOT** send email/Slack, resolve/close Jira, transition tickets, delete anything, or touch DMs/private channels — without an explicit, per-action go-ahead from you.
+- **Single carve-out (decided 2026-07-14):** the agent may send Slack DMs **to Alvint only**, containing **briefs only** (the 9 AM full / 1 PM delta, short version + Notion link). Recipient and content are both fixed; everything else stays draft-only.
 - **Jira starts read-only.** Graduate to "create my own tickets" once trusted; keep transitions/comments as drafts-for-approval.
 - Everything is **informational + preparatory**. You remain the sender and the decider.
 
@@ -262,14 +263,24 @@ Position the two tools by job, not as rivals:
 
 ---
 
-## 10. Phased rollout (≈4 weeks)
+## 10. Rollout — build ASAP, tune over weeks *(decided 2026-07-14)*
 
-- **Week 0:** set up the Obsidian vault (day 1) + Granola rescue (§6.1) + bootstrap Notion schema (§8.1) + fill the People DB and `context/priorities.md`.
-- **Week 1:** Harvester + Triage live; review the Inbox manually each day; tune dedupe + "important" rules.
-- **Week 2:** Daily Brief + Reminders on a schedule; refine format against your reference brief.
-- **Week 3:** Draft Assistant + Weekly Context + Weekly Wrap.
-- **Week 4:** OneNote 2-year migration + weekly Notion→vault export; retire OneNote.
-- **Ongoing:** the real work — update the People DB, `priorities.md`, and Living Context weekly; prune noisy sources; consider graduating one narrow flow past draft-only.
+Everything gets built up front in one push; the following weeks are for tuning against real use, not for building.
+
+**Build sprint (dependency order, as fast as sessions allow):**
+1. Obsidian vault + Granola rescue (§6.1) — time-sensitive, first.
+2. Notion schema bootstrap (§8.1); fill the People DB + `context/priorities.md`.
+3. Harvester + Triage commands.
+4. Brief (full + delta) + Slack DM delivery + Followups.
+5. Draft Assistant + Weekly Context + Weekly Wrap.
+6. launchd schedules — gated only on the headless-MCP test (§7).
+7. OneNote 2-year migration + weekly Notion→vault export; retire OneNote.
+
+**Tuning period (the following weeks — the real work):**
+- Review triage daily via the 1 PM sanity-check delta; correct misclassifications; tune dedupe + "important" rules.
+- Refine brief format against `context/reference-brief.md`.
+- Update the People DB, `priorities.md`, and Living Context weekly; prune noisy sources.
+- Consider graduating one narrow flow past draft-only once trusted.
 
 ---
 
