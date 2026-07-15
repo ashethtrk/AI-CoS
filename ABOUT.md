@@ -33,8 +33,8 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 | Plan / architecture | ✅ Done — see `docs/chief-of-staff-plan.md` |
 | Repo + instructions | ✅ This repo |
 | Design review + doc updates | ✅ 2026-07-14 |
-| Obsidian vault setup (day 1) | ⏳ **Do first** (with Granola rescue) |
-| Granola rescue (30-day risk) | ⏳ **Do first** |
+| Obsidian vault setup (day 1) | ✅ 2026-07-15 — `~/Documents/Obsidian/CoS`, git-initialized |
+| Granola rescue (30-day risk) | 🟡 MCP capture done (58 meetings, Jun 15–Jul 15; summaries+attendees — free tier blocks transcripts AND >30-day history). CSV export pending. |
 | Notion schema bootstrap | ⬜ Not started |
 | Harvester + Triage | ⬜ Not started |
 | Daily Brief + Reminders | ⬜ Not started |
@@ -53,6 +53,7 @@ A personal **AI Chief of Staff** that aggregates action items from Granola, emai
 
 _Newest first. One line per meaningful change._
 
+- **2026-07-15** — Granola rescue phase 1: 58/59 meetings (Jun 15–Jul 15) archived to vault via MCP with summaries + attendees (1 skipped: unusable audio). Free tier blocks transcripts and folders via API, and history >30 days — CSV export is the remaining path for both; local app cache is encrypted (dead end). Vault created + git-initialized.
 - **2026-07-14** — MCP smoke test: 7/7 pipes green (Granola, Notion, Gmail, Slack, Calendar, Drive, Jira) via interactive read-only calls. Headless validation still pending before schedules go live.
 - **2026-07-14** — Brief delivery decided: Slack DM to Alvint (single carve-out to the no-send rule — to-me-only, briefs-only). Rollout compressed: build everything ASAP, tune over the following weeks (plan §10 rewritten). Owner name corrected to Alvint.
 - **2026-07-14** — Design review with Claude. Cadence set: 9AM PT full brief + 1PM PT sanity-check delta, weekdays. launchd over cron (laptop sleeps). Dropped `people.md` — Notion People DB is canonical. Added cross-source dedup at triage, `state/` harvest bookkeeping, and a headless-MCP validation gate before scheduling. Standardized "Items DB" naming. Obsidian confirmed in scope from day 1 (vault `~/Documents/Obsidian/CoS`). Scaffolded `context/priorities.md`.
